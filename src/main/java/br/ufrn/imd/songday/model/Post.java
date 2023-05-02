@@ -1,5 +1,6 @@
 package br.ufrn.imd.songday.model;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
 
@@ -19,6 +20,10 @@ public class Post {
     private String userId;
     private String text;
     @Indexed(direction = IndexDirection.DESCENDING)
-    private Date createdAt;
+    private Date createdAt = new Date();
     private Set<String> userLikes;
+
+    public Post() {
+        userLikes = Collections.emptySet();
+    }
 }
