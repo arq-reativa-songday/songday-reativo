@@ -30,9 +30,9 @@ public class UserController {
     private UserMapper mapper;
 
     @PostMapping
-    public ResponseEntity<User> save(@Valid @RequestBody UserInput userInput) {
-        User user = mapper.toUser(userInput);
-        return ResponseEntity.ok(service.createUser(user));
+    public ResponseEntity<UserOutput> save(@Valid @RequestBody UserInput userInput) {
+        User newUser = service.createUser(mapper.toUser(userInput));
+        return ResponseEntity.ok(mapper.toUserOutput(newUser));
     }
 
     @GetMapping
@@ -44,7 +44,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserOutput> getbYId(@PathVariable String id) {
+    public ResponseEntity<UserOutput> getById(@PathVariable String id) {
         User user = service.findById(id);
         return ResponseEntity.ok(mapper.toUserOutput(user));
     }

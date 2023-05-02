@@ -1,0 +1,12 @@
+{"properties": [
+  {
+    "name": "jwt.secret",
+    "type": "java.lang.String",
+    "description": "The algorithm-specific signing key to use to digitally sign the JWT."
+  },
+  {
+    "name": "songs.api.address",
+    "type": "java.lang.String",
+    "description": "Songs microsservice URI."
+  }
+]}
