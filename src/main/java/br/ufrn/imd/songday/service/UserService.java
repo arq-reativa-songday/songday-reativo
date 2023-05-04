@@ -25,7 +25,7 @@ public class UserService {
         Optional<User> search = repository.findByUsername(newUser.getUsername());
 
         if (search.isPresent()) {
-            throw new ValidationException("Username already exists.");
+            throw new ValidationException("Nome de usuário já existe");
         }
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
 
@@ -36,13 +36,13 @@ public class UserService {
         Page<User> userPage = repository.findAll(pageable);
 
         if (!userPage.hasContent()) {
-            throw new NotFoundException("No user found.");
+            throw new NotFoundException("Nenhum usuário encontrado");
         }
 
         return userPage;
     }
 
     public User findById(String id) {
-        return repository.findById(id).orElseThrow(() -> new NotFoundException("User not found."));
+        return repository.findById(id).orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
     }
 }
