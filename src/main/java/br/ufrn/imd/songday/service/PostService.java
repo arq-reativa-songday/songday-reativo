@@ -1,8 +1,12 @@
 package br.ufrn.imd.songday.service;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import br.ufrn.imd.songday.dto.post.PostFeedDto;
 import br.ufrn.imd.songday.exception.NotFoundException;
 import br.ufrn.imd.songday.exception.ValidationException;
 import br.ufrn.imd.songday.model.Post;
@@ -26,6 +30,11 @@ public class PostService {
 
         newPost.setUserId(user.getId());
         return repository.save(newPost);
+    }
+
+    public List<PostFeedDto> findAll() {
+        List<String> list = Arrays.asList("64541ceacc28ad7158967d78");
+        return repository.findPosts(list, 0, 20);
     }
 
     public Post findById(String id) {
