@@ -3,6 +3,7 @@ package br.ufrn.imd.songday.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import br.ufrn.imd.songday.exception.NotFoundException;
 import br.ufrn.imd.songday.exception.ValidationException;
 import br.ufrn.imd.songday.model.Post;
 import br.ufrn.imd.songday.model.User;
@@ -25,5 +26,33 @@ public class PostService {
 
         newPost.setUserId(user.getId());
         return repository.save(newPost);
+    }
+
+    public Post findById(String id) {
+        return repository.findById(id).orElseThrow(() -> new NotFoundException("Publicação não encontrada"));
+    }
+
+    public Post like(String idPost, User user) {
+        Post post = findById(idPost);
+
+        boolean hasIdUser = post.getUserLikes().contains(user.getId());
+        if (hasIdUser) {
+            throw new ValidationException("Você já curtiu essa publicação");
+        }
+
+        post.getUserLikes().add(user.getId());
+        return repository.save(post);
+    }
+
+    public Post unlike(String idPost, User user) {
+        Post post = findById(idPost);
+
+        boolean hasIdUser = post.getUserLikes().contains(user.getId());
+        if (!hasIdUser) {
+            throw new ValidationException("Você não curtiu essa publicação");
+        }
+
+        post.getUserLikes().remove(user.getId());
+        return repository.save(post);
     }
 }

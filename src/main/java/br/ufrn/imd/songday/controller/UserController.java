@@ -9,7 +9,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -51,15 +50,15 @@ public class UserController {
         return ResponseEntity.ok(mapper.toUserOutput(user));
     }
 
-    @PutMapping("/follow/{idFollowee}")
-    public ResponseEntity<String> follow(@PathVariable String idFollowee, @AuthenticationPrincipal User user) {
-        service.follow(idFollowee, user);
+    @PostMapping("/{id}/follow")
+    public ResponseEntity<String> follow(@PathVariable String id, @AuthenticationPrincipal User user) {
+        service.follow(id, user);
         return ResponseEntity.ok("Usuário seguido com sucesso");
     }
 
-    @PutMapping("/unfollow/{idFollowee}")
-    public ResponseEntity<String> unfollow(@PathVariable String idFollowee, @AuthenticationPrincipal User user) {
-        service.unfollow(idFollowee, user);
+    @PostMapping("/{id}/unfollow")
+    public ResponseEntity<String> unfollow(@PathVariable String id, @AuthenticationPrincipal User user) {
+        service.unfollow(id, user);
         return ResponseEntity.ok("Deixou de seguir com sucesso");
     }
 }

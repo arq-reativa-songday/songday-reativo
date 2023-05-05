@@ -3,6 +3,7 @@ package br.ufrn.imd.songday.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,5 +29,17 @@ public class PostController {
     public ResponseEntity<Post> save(@Valid @RequestBody PostInput postInput, @AuthenticationPrincipal User user) {
         Post post = mapper.toPost(postInput);
         return ResponseEntity.ok(service.createPost(post, user));
+    }
+
+    @PostMapping("/{id}/like")
+    public ResponseEntity<String> follow(@PathVariable String id, @AuthenticationPrincipal User user) {
+        service.like(id, user);
+        return ResponseEntity.ok("Publicação curtida com sucesso");
+    }
+
+    @PostMapping("/{id}/unlike")
+    public ResponseEntity<String> unfollow(@PathVariable String id, @AuthenticationPrincipal User user) {
+        service.unlike(id, user);
+        return ResponseEntity.ok("Deixou de curtir com sucesso");
     }
 }
