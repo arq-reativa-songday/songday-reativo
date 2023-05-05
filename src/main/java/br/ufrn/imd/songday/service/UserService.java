@@ -45,4 +45,31 @@ public class UserService {
     public User findById(String id) {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
     }
+
+    public User follow(String idFollowee, User user) {
+        if (idFollowee.equals(user.getId())) {
+            throw new ValidationException("Não é possível seguir seu próprio usuário");
+        }
+
+        boolean hasIdFollowee = user.getFollowees().contains(idFollowee);
+        if (hasIdFollowee) {
+            throw new ValidationException("Você já segue esse usuário");
+        }
+
+        // verifica se o usuário existe
+        findById(idFollowee);
+
+        user.getFollowees().add(idFollowee);
+        return repository.save(user);
+    }
+
+    public User unfollow(String idFollowee, User user) {
+        boolean hasIdFollowee = user.getFollowees().contains(idFollowee);
+        if (!hasIdFollowee) {
+            throw new ValidationException("Você não segue esse usuário");
+        }
+
+        user.getFollowees().remove(idFollowee);
+        return repository.save(user);
+    }
 }
