@@ -20,7 +20,8 @@ public interface PostRepository extends MongoRepository<Post, String> {
         "{$addFields: {userIdObject: {$toObjectId: '$userId'}}}",
         "{$lookup: {from: 'users', localField: 'userIdObject', foreignField: '_id', as: 'users'}}",
         "{$addFields: {user: {$arrayElemAt: ['$users', 0]}}}",
-        "{$lookup: {from: 'comments', localField: '_id', foreignField: 'postId', as: 'comments'}}",
+        "{$addFields: {idString: {$toString: '$_id'}}}",
+        "{$lookup: {from: 'comments', localField: 'idString', foreignField: 'postId', as: 'comments'}}",
         "{$addFields: {commentsCount: {$size: '$comments'}}}",
         "{$addFields: {likesCount: {$size: '$userLikes'}}}",
     })
