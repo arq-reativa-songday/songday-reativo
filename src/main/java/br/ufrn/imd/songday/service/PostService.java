@@ -12,6 +12,7 @@ import br.ufrn.imd.songday.exception.ValidationException;
 import br.ufrn.imd.songday.model.Post;
 import br.ufrn.imd.songday.model.User;
 import br.ufrn.imd.songday.repository.PostRepository;
+import br.ufrn.imd.songday.repository.UserReadOnlyRepository;
 import br.ufrn.imd.songday.util.DateUtil;
 
 @Service
@@ -20,11 +21,11 @@ public class PostService {
     private PostRepository repository;
 
     @Autowired
-    private UserService userService;
+    private UserReadOnlyRepository userReadOnlyRepository;
 
     public Post createPost(Post newPost) {
-        // lança exceção se o usuário não existir
-        User user = userService.findById(newPost.getUserId());
+        User user = userReadOnlyRepository.findById(newPost.getUserId())
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
         // TODO: verificar se a música existe
 
@@ -54,8 +55,8 @@ public class PostService {
     public Post like(String idPost, String userId) {
         Post post = findById(idPost);
 
-        // lança exceção se o usuário não existir
-        User user = userService.findById(userId);
+        User user = userReadOnlyRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
         boolean hasIdUser = post.getUserLikes().contains(user.getId());
         if (hasIdUser) {
