@@ -60,4 +60,10 @@ public class UserController {
         service.unfollow(idFollowee, userId);
         return ResponseEntity.ok("Deixou de seguir com sucesso");
     }
+
+    @GetMapping("/username/{username}")
+    public ResponseEntity<UserOutput> getByUsername(@PathVariable String username) {
+        User user = service.findByUsername(username);
+        return ResponseEntity.ok(mapper.toUserOutput(user));
+    }
 }

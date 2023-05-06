@@ -74,4 +74,9 @@ public class UserService {
         user.getFollowees().remove(idFollowee);
         return repository.save(user);
     }
+
+    public User findByUsername(String username) {
+        return repository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException(String.format("O usuário '%s' não foi encontrado", username)));
+    }
 }
