@@ -2,6 +2,7 @@ package br.ufrn.imd.songday.repository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -25,5 +26,7 @@ public interface PostRepository extends MongoRepository<Post, String> {
         "{$addFields: {commentsCount: {$size: '$comments'}}}",
         "{$addFields: {likesCount: {$size: '$userLikes'}}}",
     })
-    List<PostSearchDto> findPosts(List<String> followees, int offset, int limit);
+    List<PostSearchDto> findPosts(Set<String> followees, int offset, int limit);
+
+    int countByUserIdInAndCreatedAtBetween(Set<String> followees, Date start, Date end);
 }
