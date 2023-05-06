@@ -8,5 +8,8 @@ public class PostInput {
     @NotBlank
     private String songId;
 
+    @NotBlank
+    private String userId;
+
     private String text;
 }
