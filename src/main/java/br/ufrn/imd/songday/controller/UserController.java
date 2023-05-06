@@ -1,5 +1,7 @@
 package br.ufrn.imd.songday.controller;
 
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -65,5 +67,11 @@ public class UserController {
     public ResponseEntity<UserOutput> getByUsername(@PathVariable String username) {
         User user = service.findByUsername(username);
         return ResponseEntity.ok(mapper.toUserOutput(user));
+    }
+
+    @GetMapping("/username/{username}/followees")
+    public ResponseEntity<Set<String>> getFolloweesByUsername(@PathVariable String username) {
+        Set<String> followees = service.findByUsername(username).getFollowees();
+        return ResponseEntity.ok(followees);
     }
 }

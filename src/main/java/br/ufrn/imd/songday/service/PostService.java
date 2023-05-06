@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import br.ufrn.imd.songday.dto.post.PostSearchDto;
+import br.ufrn.imd.songday.dto.post.SearchPostsCountDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsDto;
 import br.ufrn.imd.songday.exception.NotFoundException;
 import br.ufrn.imd.songday.exception.ValidationException;
@@ -77,5 +78,9 @@ public class PostService {
 
         post.getUserLikes().remove(userId);
         return repository.save(post);
+    }
+
+    public int searchPostsCount(SearchPostsCountDto search) {
+        return repository.countByUserIdInAndCreatedAtBetween(search.getFollowees(), search.getStart(), search.getEnd());
     }
 }

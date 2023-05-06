@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import br.ufrn.imd.songday.dto.post.PostInput;
 import br.ufrn.imd.songday.dto.post.PostMapper;
 import br.ufrn.imd.songday.dto.post.PostSearchDto;
+import br.ufrn.imd.songday.dto.post.SearchPostsCountDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsDto;
 import br.ufrn.imd.songday.model.Post;
 import br.ufrn.imd.songday.service.PostService;
@@ -48,5 +49,10 @@ public class PostController {
     public ResponseEntity<String> unfollow(@PathVariable String id, @RequestBody String userId) {
         service.unlike(id, userId);
         return ResponseEntity.ok("Deixou de curtir com sucesso");
+    }
+
+    @PostMapping("/search/count")
+    public ResponseEntity<Integer> searchPostsCount(@Valid @RequestBody SearchPostsCountDto search) {
+        return ResponseEntity.ok(service.searchPostsCount(search));
     }
 }
