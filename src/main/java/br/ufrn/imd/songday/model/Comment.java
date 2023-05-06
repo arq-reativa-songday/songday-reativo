@@ -15,5 +15,5 @@ public class Comment {
     private String postId;
     private String userId;
     private String text;
-    private Date createdAt;
+    private Date createdAt = new Date();
 }

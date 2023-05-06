@@ -5,7 +5,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,15 +49,15 @@ public class UserController {
         return ResponseEntity.ok(mapper.toUserOutput(user));
     }
 
-    @PostMapping("/{id}/follow")
-    public ResponseEntity<String> follow(@PathVariable String id, @AuthenticationPrincipal User user) {
-        service.follow(id, user);
+    @PostMapping("/{idFollowee}/follow")
+    public ResponseEntity<String> follow(@PathVariable String idFollowee, @RequestBody String userId) {
+        service.follow(idFollowee, userId);
         return ResponseEntity.ok("Usuário seguido com sucesso");
     }
 
-    @PostMapping("/{id}/unfollow")
-    public ResponseEntity<String> unfollow(@PathVariable String id, @AuthenticationPrincipal User user) {
-        service.unfollow(id, user);
+    @PostMapping("/{idFollowee}/unfollow")
+    public ResponseEntity<String> unfollow(@PathVariable String idFollowee, @RequestBody String userId) {
+        service.unfollow(idFollowee, userId);
         return ResponseEntity.ok("Deixou de seguir com sucesso");
     }
 }

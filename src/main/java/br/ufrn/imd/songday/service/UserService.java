@@ -46,27 +46,29 @@ public class UserService {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
     }
 
-    public User follow(String idFollowee, User user) {
+    public User follow(String idFollowee, String userId) {
+        User user = findById(userId);
         if (idFollowee.equals(user.getId())) {
             throw new ValidationException("Não é possível seguir seu próprio usuário");
         }
 
         boolean hasIdFollowee = user.getFollowees().contains(idFollowee);
         if (hasIdFollowee) {
-            throw new ValidationException("Você já segue esse usuário");
+            throw new ValidationException("Não é possível seguir um usuário mais de uma vez");
         }
 
-        // verifica se o usuário existe
+        // verifica se o usuário a ser seguido existe
         findById(idFollowee);
 
         user.getFollowees().add(idFollowee);
         return repository.save(user);
     }
 
-    public User unfollow(String idFollowee, User user) {
+    public User unfollow(String idFollowee, String userId) {
+        User user = findById(userId);
         boolean hasIdFollowee = user.getFollowees().contains(idFollowee);
         if (!hasIdFollowee) {
-            throw new ValidationException("Você não segue esse usuário");
+            throw new ValidationException("Usuário não seguido");
         }
 
         user.getFollowees().remove(idFollowee);
