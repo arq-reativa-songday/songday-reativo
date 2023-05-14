@@ -3,23 +3,30 @@ package br.ufrn.imd.songday.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import br.ufrn.imd.songday.client.SongsClient;
 import br.ufrn.imd.songday.dto.post.PostSearchDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsCountDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsDto;
 import br.ufrn.imd.songday.exception.NotFoundException;
+import br.ufrn.imd.songday.exception.ServicesCommunicationException;
 import br.ufrn.imd.songday.exception.ValidationException;
 import br.ufrn.imd.songday.model.Post;
 import br.ufrn.imd.songday.model.User;
 import br.ufrn.imd.songday.repository.PostRepository;
 import br.ufrn.imd.songday.repository.UserReadOnlyRepository;
 import br.ufrn.imd.songday.util.DateUtil;
+import feign.FeignException;
 
 @Service
 public class PostService {
     @Autowired
     private PostRepository repository;
+
+    @Autowired
+    private SongsClient songsClient;
 
     @Autowired
     private UserReadOnlyRepository userReadOnlyRepository;
@@ -28,7 +35,9 @@ public class PostService {
         User user = userReadOnlyRepository.findById(newPost.getUserId())
                 .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
-        // TODO: verificar se a música existe
+        if (!existsSongById(newPost.getSongId())) {
+            throw new NotFoundException("Música não encontrada");
+        }
 
         boolean hasPostToday = repository.existsByUserIdAndCreatedAtBetween(user.getId(), DateUtil.getTodayStartDate(),
                 DateUtil.getTodayEndDate());
@@ -82,5 +91,23 @@ public class PostService {
 
     public int searchPostsCount(SearchPostsCountDto search) {
         return repository.countByUserIdInAndCreatedAtBetween(search.getFollowees(), search.getStart(), search.getEnd());
+    }
+
+    private Boolean existsSongById(String songId) {
+        try {
+            ResponseEntity<Object> response = songsClient.findById(songId);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                return false;
+            }
+            return response.getBody() != null ? true : false;
+        } catch (FeignException e) {
+            if (e.status() == 404) {
+                return false;
+            } else {
+                e.printStackTrace();
+                throw new ServicesCommunicationException(
+                        "Erro durante a comunicação com Songs para recuperar a música por id");
+            }
+        }
     }
 }
