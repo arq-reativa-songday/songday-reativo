@@ -45,7 +45,10 @@ public class PostService {
             throw new ValidationException("Só é possível escolher uma música por dia");
         }
 
-        return repository.save(newPost);
+        Post postSaved = repository.save(newPost);
+        updateSongScore(postSaved.getSongId());
+
+        return postSaved;
     }
 
     public List<PostSearchDto> findAll(SearchPostsDto search) {
@@ -108,6 +111,20 @@ public class PostService {
                 throw new ServicesCommunicationException(
                         "Erro durante a comunicação com Songs para recuperar a música por id");
             }
+        }
+    }
+
+    private void updateSongScore(String songId) {
+        try {
+            ResponseEntity<Void> response = songsClient.updateScore(songId);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new ServicesCommunicationException(
+                    "Erro durante a comunicação com Songs para atualizar o score da música");
+            }
+        } catch (FeignException e) {
+            e.printStackTrace();
+            throw new ServicesCommunicationException(
+                    "Erro durante a comunicação com Songs para atualizar o score da música");
         }
     }
 }
