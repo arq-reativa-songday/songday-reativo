@@ -1,9 +1,6 @@
 package br.ufrn.imd.songday.service;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +9,8 @@ import br.ufrn.imd.songday.exception.NotFoundException;
 import br.ufrn.imd.songday.exception.ValidationException;
 import br.ufrn.imd.songday.model.User;
 import br.ufrn.imd.songday.repository.UserRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 public class UserService {
@@ -21,62 +20,61 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public User createUser(User newUser) {
-        Optional<User> search = repository.findByUsername(newUser.getUsername());
-
-        if (search.isPresent()) {
-            throw new ValidationException("Nome de usuário já existe");
-        }
+    public Mono<User> createUser(User newUser) {
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
-
-        return repository.save(newUser);
+        return repository.findByUsername(newUser.getUsername())
+            .flatMap(search -> Mono.<User>error(new ValidationException("Nome de usuário já existe")))
+            .switchIfEmpty(repository.save(newUser));
     }
 
-    public Page<User> findAll(Pageable pageable) {
-        Page<User> userPage = repository.findAll(pageable);
-
-        if (!userPage.hasContent()) {
-            throw new NotFoundException("Nenhum usuário encontrado");
-        }
-
-        return userPage;
+    public Flux<User> findAll(Pageable pageable) {
+        return repository.findAll()
+            .skip(pageable.getPageSize()*pageable.getPageNumber())
+            .take(pageable.getPageSize())
+            .switchIfEmpty(Mono.error(new NotFoundException("Nenhum usuário encontrado")));
     }
 
-    public User findById(String id) {
-        return repository.findById(id).orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
+    public Mono<User> findById(String id) {
+        return repository.findById(id)
+            .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
     }
 
-    public User follow(String idFollowee, String userId) {
-        User user = findById(userId);
-        if (idFollowee.equals(user.getId())) {
-            throw new ValidationException("Não é possível seguir seu próprio usuário");
-        }
+    public Mono<User> follow(String idFollowee, String userId) {
+        Mono<User> user = findById(userId);
 
-        boolean hasIdFollowee = user.getFollowees().contains(idFollowee);
-        if (hasIdFollowee) {
-            throw new ValidationException("Não é possível seguir um usuário mais de uma vez");
-        }
+        return user.flatMap(userFound -> {
+            if (idFollowee.equals(userFound.getId())) {
+                return Mono.error(new ValidationException("Não é possível seguir seu próprio usuário"));
+            }
 
-        // verifica se o usuário a ser seguido existe
-        findById(idFollowee);
+            boolean hasIdFollowee = userFound.getFollowees().contains(idFollowee);
+            if (hasIdFollowee) {
+                return Mono.error(new ValidationException("Não é possível seguir um usuário mais de uma vez"));
+            }
 
-        user.getFollowees().add(idFollowee);
-        return repository.save(user);
+            return findById(idFollowee).flatMap(followee -> {
+                userFound.getFollowees().add(idFollowee);
+                return repository.save(userFound);
+            });
+        });
     }
 
-    public User unfollow(String idFollowee, String userId) {
-        User user = findById(userId);
-        boolean hasIdFollowee = user.getFollowees().contains(idFollowee);
-        if (!hasIdFollowee) {
-            throw new ValidationException("Usuário não seguido");
-        }
+    public Mono<User> unfollow(String idFollowee, String userId) {
+        Mono<User> user = findById(userId);
 
-        user.getFollowees().remove(idFollowee);
-        return repository.save(user);
+        return user.flatMap(userFound -> {
+            boolean hasIdFollowee = userFound.getFollowees().contains(idFollowee);
+            if (!hasIdFollowee) {
+                return Mono.error(new ValidationException("Usuário não seguido"));
+            }
+
+            userFound.getFollowees().remove(idFollowee);
+            return repository.save(userFound);
+        });
     }
 
-    public User findByUsername(String username) {
+    public Mono<User> findByUsername(String username) {
         return repository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException(String.format("O usuário '%s' não foi encontrado", username)));
+                .switchIfEmpty(Mono.error(new NotFoundException(String.format("O usuário '%s' não foi encontrado", username))));
     }
 }
