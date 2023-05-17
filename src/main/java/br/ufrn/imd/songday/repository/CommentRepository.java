@@ -1,11 +1,10 @@
 package br.ufrn.imd.songday.repository;
 
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 
 import br.ufrn.imd.songday.model.Comment;
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
-
-public interface CommentRepository extends MongoRepository<Comment, String> {
-    Optional<Comment> findByIdAndPostId(String id, String postId);
+public interface CommentRepository extends ReactiveMongoRepository<Comment, String> {
+    Mono<Comment> findByIdAndPostId(String id, String postId);
 }

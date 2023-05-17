@@ -1,16 +1,17 @@
 package br.ufrn.imd.songday.repository;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
 
 import org.springframework.data.mongodb.repository.Aggregation;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 
 import br.ufrn.imd.songday.dto.post.PostSearchDto;
 import br.ufrn.imd.songday.model.Post;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-public interface PostRepository extends MongoRepository<Post, String> {
+public interface PostRepository extends ReactiveMongoRepository<Post, String> {
     boolean existsByUserIdAndCreatedAtBetween(String userId, Date start, Date end);
 
     @Aggregation(pipeline = {
@@ -26,7 +27,7 @@ public interface PostRepository extends MongoRepository<Post, String> {
         "{$addFields: {commentsCount: {$size: '$comments'}}}",
         "{$addFields: {likesCount: {$size: '$userLikes'}}}",
     })
-    List<PostSearchDto> findPosts(Set<String> followees, int offset, int limit);
+    Flux<PostSearchDto> findPosts(Set<String> followees, int offset, int limit);
 
-    int countByUserIdInAndCreatedAtBetween(Set<String> followees, Date start, Date end);
+    Mono<Long> countByUserIdInAndCreatedAtBetween(Set<String> followees, Date start, Date end);
 }

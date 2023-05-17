@@ -1,15 +1,16 @@
 package br.ufrn.imd.songday.service;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import br.ufrn.imd.songday.exception.NotFoundException;
 import br.ufrn.imd.songday.model.Comment;
+import br.ufrn.imd.songday.model.Post;
+import br.ufrn.imd.songday.model.User;
 import br.ufrn.imd.songday.repository.CommentRepository;
 import br.ufrn.imd.songday.repository.PostReadOnlyRepository;
 import br.ufrn.imd.songday.repository.UserReadOnlyRepository;
+import reactor.core.publisher.Mono;
 
 @Service
 public class CommentService {
@@ -22,22 +23,22 @@ public class CommentService {
     @Autowired
     private PostReadOnlyRepository postReadOnlyRepository;
 
-    public Comment save(Comment newComment, String postId) {
-        userReadOnlyRepository.findById(newComment.getUserId())
-                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
+    public Mono<Comment> save(Comment newComment, String postId) {
+        Mono<User> user = userReadOnlyRepository.findById(newComment.getUserId())
+                .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
 
-        postReadOnlyRepository.findById(postId).orElseThrow(() -> new NotFoundException("Publicação não encontrada"));
-        newComment.setPostId(postId);
+        Mono<Post> post = postReadOnlyRepository.findById(postId)
+                .switchIfEmpty(Mono.error(new NotFoundException("Publicação não encontrada")));
 
-        return repository.save(newComment);
+        return user.zipWith(post).flatMap(t -> {
+            newComment.setPostId(postId);
+            return repository.save(newComment);
+        });
     }
 
-    public void delete(String postId, String commentId) {
-        Optional<Comment> comment = repository.findByIdAndPostId(commentId, postId);
-        if (!comment.isPresent()) {
-            throw new NotFoundException("Comentário não encontrado");
-        }
-
-        repository.deleteById(commentId);
+    public Mono<Void> delete(String postId, String commentId) {
+        return repository.findByIdAndPostId(commentId, postId)
+                .switchIfEmpty(Mono.error(new NotFoundException("Comentário não encontrado")))
+                .flatMap(commentFound -> repository.deleteById(commentId));
     }
 }

@@ -19,6 +19,8 @@ import br.ufrn.imd.songday.repository.PostRepository;
 import br.ufrn.imd.songday.repository.UserReadOnlyRepository;
 import br.ufrn.imd.songday.util.DateUtil;
 import feign.FeignException;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 public class PostService {
@@ -31,68 +33,70 @@ public class PostService {
     @Autowired
     private UserReadOnlyRepository userReadOnlyRepository;
 
-    public Post createPost(Post newPost) {
-        User user = userReadOnlyRepository.findById(newPost.getUserId())
-                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
+    public Mono<Post> createPost(Post newPost) {
+        // Mono<User> user = userReadOnlyRepository.findById(newPost.getUserId())
+        //         .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
 
-        if (!existsSongById(newPost.getSongId())) {
-            throw new NotFoundException("Música não encontrada");
-        }
+        // if (!existsSongById(newPost.getSongId())) {
+        //     throw new NotFoundException("Música não encontrada");
+        // }
 
-        boolean hasPostToday = repository.existsByUserIdAndCreatedAtBetween(user.getId(), DateUtil.getTodayStartDate(),
-                DateUtil.getTodayEndDate());
-        if (hasPostToday) {
-            throw new ValidationException("Só é possível escolher uma música por dia");
-        }
+        // boolean hasPostToday = repository.existsByUserIdAndCreatedAtBetween(user.getId(), DateUtil.getTodayStartDate(),
+        //         DateUtil.getTodayEndDate());
+        // if (hasPostToday) {
+        //     throw new ValidationException("Só é possível escolher uma música por dia");
+        // }
 
-        Post postSaved = repository.save(newPost);
-        updateSongScore(postSaved.getSongId());
+        // Post postSaved = repository.save(newPost);
+        // updateSongScore(postSaved.getSongId());
 
-        return postSaved;
+        // return postSaved;
+        return Mono.empty();
     }
 
-    public List<PostSearchDto> findAll(SearchPostsDto search) {
-        List<PostSearchDto> posts = repository.findPosts(search.getFollowees(), search.getOffset(), search.getLimit());
-
-        if (posts.isEmpty()) {
-            throw new NotFoundException("Nehuma publicação encontrada");
-        }
-
-        return posts;
+    public Flux<PostSearchDto> findAll(SearchPostsDto search) {
+        return repository.findPosts(search.getFollowees(), search.getOffset(), search.getLimit())
+            .switchIfEmpty(Mono.error(new NotFoundException("Nehuma publicação encontrada")));
     }
 
-    public Post findById(String id) {
-        return repository.findById(id).orElseThrow(() -> new NotFoundException("Publicação não encontrada"));
+    public Mono<Post> findById(String id) {
+        return repository.findById(id)
+            .switchIfEmpty(Mono.error(new NotFoundException("Publicação não encontrada")));
     }
 
-    public Post like(String idPost, String userId) {
-        Post post = findById(idPost);
+    public Mono<Post> like(String idPost, String userId) {
+        Mono<Post> post = findById(idPost);
 
-        User user = userReadOnlyRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
+        return post.flatMap(postFound -> {
+            return userReadOnlyRepository.findById(userId).flatMap(
+                    userFound -> {
+                        boolean hasIdUser = postFound.getUserLikes().contains(userFound.getId());
+                        if (hasIdUser) {
+                            return Mono.error(
+                                    new ValidationException("Não é possível curtir uma publicação mais de uma vez"));
+                        }
 
-        boolean hasIdUser = post.getUserLikes().contains(user.getId());
-        if (hasIdUser) {
-            throw new ValidationException("Não é possível curtir uma publicação mais de uma vez");
-        }
-
-        post.getUserLikes().add(user.getId());
-        return repository.save(post);
+                        postFound.getUserLikes().add(userFound.getId());
+                        return repository.save(postFound);
+                    }).switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
+        });
     }
 
-    public Post unlike(String idPost, String userId) {
-        Post post = findById(idPost);
+    public Mono<Post> unlike(String idPost, String userId) {
+        Mono<Post> post = findById(idPost);
 
-        boolean hasIdUser = post.getUserLikes().contains(userId);
-        if (!hasIdUser) {
-            throw new ValidationException("Publicação não curtida");
-        }
+        return post.flatMap(postFound -> {
+            boolean hasIdUser = postFound.getUserLikes().contains(userId);
+            if (!hasIdUser) {
+                return Mono.error(new ValidationException("Publicação não curtida"));
+            }
 
-        post.getUserLikes().remove(userId);
-        return repository.save(post);
+            postFound.getUserLikes().remove(userId);
+            return repository.save(postFound);
+        });
     }
 
-    public int searchPostsCount(SearchPostsCountDto search) {
+    public Mono<Long> searchPostsCount(SearchPostsCountDto search) {
         return repository.countByUserIdInAndCreatedAtBetween(search.getFollowees(), search.getStart(), search.getEnd());
     }
 
