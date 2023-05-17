@@ -56,29 +56,29 @@ public class PostService {
 
     public Flux<PostSearchDto> findAll(SearchPostsDto search) {
         return repository.findPosts(search.getFollowees(), search.getOffset(), search.getLimit())
-            .switchIfEmpty(Mono.error(new NotFoundException("Nehuma publicação encontrada")));
+                .switchIfEmpty(Mono.error(new NotFoundException("Nehuma publicação encontrada")));
     }
 
     public Mono<Post> findById(String id) {
         return repository.findById(id)
-            .switchIfEmpty(Mono.error(new NotFoundException("Publicação não encontrada")));
+                .switchIfEmpty(Mono.error(new NotFoundException("Publicação não encontrada")));
     }
 
     public Mono<Post> like(String idPost, String userId) {
         Mono<Post> post = findById(idPost);
+        Mono<User> user = userReadOnlyRepository.findById(userId)
+                .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
 
-        return post.flatMap(postFound -> {
-            return userReadOnlyRepository.findById(userId).flatMap(
-                    userFound -> {
-                        boolean hasIdUser = postFound.getUserLikes().contains(userFound.getId());
-                        if (hasIdUser) {
-                            return Mono.error(
-                                    new ValidationException("Não é possível curtir uma publicação mais de uma vez"));
-                        }
+        return post.zipWith(user).flatMap(t -> {
+            Post postFound = t.getT1();
+            User userFound = t.getT2();
+            boolean hasIdUser = postFound.getUserLikes().contains(userFound.getId());
+            if (hasIdUser) {
+                return Mono.error(new ValidationException("Não é possível curtir uma publicação mais de uma vez"));
+            }
 
-                        postFound.getUserLikes().add(userFound.getId());
-                        return repository.save(postFound);
-                    }).switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
+            postFound.getUserLikes().add(userFound.getId());
+            return repository.save(postFound);
         });
     }
 
@@ -123,7 +123,7 @@ public class PostService {
             ResponseEntity<Void> response = songsClient.updateScore(songId);
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new ServicesCommunicationException(
-                    "Erro durante a comunicação com Songs para atualizar o score da música");
+                        "Erro durante a comunicação com Songs para atualizar o score da música");
             }
         } catch (FeignException e) {
             e.printStackTrace();
