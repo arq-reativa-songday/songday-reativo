@@ -1,9 +1,6 @@
 package br.ufrn.imd.songday.service;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import br.ufrn.imd.songday.client.SongsClient;
@@ -11,14 +8,12 @@ import br.ufrn.imd.songday.dto.post.PostSearchDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsCountDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsDto;
 import br.ufrn.imd.songday.exception.NotFoundException;
-import br.ufrn.imd.songday.exception.ServicesCommunicationException;
 import br.ufrn.imd.songday.exception.ValidationException;
 import br.ufrn.imd.songday.model.Post;
 import br.ufrn.imd.songday.model.User;
 import br.ufrn.imd.songday.repository.PostRepository;
 import br.ufrn.imd.songday.repository.UserReadOnlyRepository;
 import br.ufrn.imd.songday.util.DateUtil;
-import feign.FeignException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,24 +29,26 @@ public class PostService {
     private UserReadOnlyRepository userReadOnlyRepository;
 
     public Mono<Post> createPost(Post newPost) {
-        // Mono<User> user = userReadOnlyRepository.findById(newPost.getUserId())
-        //         .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
+        Mono<User> user = userReadOnlyRepository.findById(newPost.getUserId())
+                .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
 
-        // if (!existsSongById(newPost.getSongId())) {
-        //     throw new NotFoundException("Música não encontrada");
-        // }
+        Mono<Boolean> existsSong = existsSongById(newPost.getSongId()).flatMap(result -> {
+            return result ? Mono.just(result) : Mono.error(new NotFoundException("Música não encontrada"));
+        });
 
-        // boolean hasPostToday = repository.existsByUserIdAndCreatedAtBetween(user.getId(), DateUtil.getTodayStartDate(),
-        //         DateUtil.getTodayEndDate());
-        // if (hasPostToday) {
-        //     throw new ValidationException("Só é possível escolher uma música por dia");
-        // }
+        Mono<Boolean> hasPostToday = repository
+                .existsByUserIdAndCreatedAtBetween(newPost.getUserId(), DateUtil.getTodayStartDate(),
+                        DateUtil.getTodayEndDate())
+                .flatMap(hasPost -> {
+                    return !hasPost ? Mono.just(hasPost)
+                            : Mono.error(new ValidationException("Só é possível escolher uma música por dia"));
+                });
 
-        // Post postSaved = repository.save(newPost);
-        // updateSongScore(postSaved.getSongId());
-
-        // return postSaved;
-        return Mono.empty();
+        return Mono.zip(user, existsSong, hasPostToday)
+                .flatMap(t -> repository.save(newPost))
+                .doOnNext(post -> {
+                    updateSongScore(post.getSongId()).subscribe();
+                });
     }
 
     public Flux<PostSearchDto> findAll(SearchPostsDto search) {
@@ -100,35 +97,11 @@ public class PostService {
         return repository.countByUserIdInAndCreatedAtBetween(search.getFollowees(), search.getStart(), search.getEnd());
     }
 
-    private Boolean existsSongById(String songId) {
-        try {
-            ResponseEntity<Object> response = songsClient.findById(songId);
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                return false;
-            }
-            return response.getBody() != null ? true : false;
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                return false;
-            } else {
-                e.printStackTrace();
-                throw new ServicesCommunicationException(
-                        "Erro durante a comunicação com Songs para recuperar a música por id");
-            }
-        }
+    private Mono<Boolean> existsSongById(String songId) {
+        return songsClient.findById(songId);
     }
 
-    private void updateSongScore(String songId) {
-        try {
-            ResponseEntity<Void> response = songsClient.updateScore(songId);
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new ServicesCommunicationException(
-                        "Erro durante a comunicação com Songs para atualizar o score da música");
-            }
-        } catch (FeignException e) {
-            e.printStackTrace();
-            throw new ServicesCommunicationException(
-                    "Erro durante a comunicação com Songs para atualizar o score da música");
-        }
+    private Mono<Void> updateSongScore(String songId) {
+        return songsClient.updateScore(songId);
     }
 }

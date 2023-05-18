@@ -12,7 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface PostRepository extends ReactiveMongoRepository<Post, String> {
-    boolean existsByUserIdAndCreatedAtBetween(String userId, Date start, Date end);
+    Mono<Boolean> existsByUserIdAndCreatedAtBetween(String userId, Date start, Date end);
 
     @Aggregation(pipeline = {
         "{$match: {userId: {$in: ?0}}}",
