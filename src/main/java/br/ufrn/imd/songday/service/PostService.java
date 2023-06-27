@@ -29,30 +29,32 @@ public class PostService {
     @Autowired
     private UserReadOnlyRepository userReadOnlyRepository;
 
-    public Mono<Post> createPost(Post newPost) {
-        Mono<User> user = userReadOnlyRepository.findById(newPost.getUserId())
-                .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
+    public Mono<Post> createPost(Mono<Post> post) {
+        return post.flatMap(newPost -> {
+            Mono<User> user = userReadOnlyRepository.findById(newPost.getUserId())
+                    .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
 
-        Mono<Boolean> existsSong = existsSongById(newPost.getSongId());
+            Mono<Boolean> existsSong = existsSongById(newPost.getSongId());
 
-        Mono<Boolean> hasPostToday = repository
-                .existsByUserIdAndCreatedAtBetween(newPost.getUserId(), DateUtil.getTodayStartDate(),
-                        DateUtil.getTodayEndDate())
-                .flatMap(hasPost -> {
-                    return !hasPost ? Mono.just(hasPost)
-                            : Mono.error(new ValidationException("Só é possível escolher uma música por dia"));
-                });
+            Mono<Boolean> hasPostToday = repository
+                    .existsByUserIdAndCreatedAtBetween(newPost.getUserId(), DateUtil.getTodayStartDate(),
+                            DateUtil.getTodayEndDate())
+                    .flatMap(hasPost -> {
+                        return !hasPost ? Mono.just(hasPost)
+                                : Mono.error(new ValidationException("Só é possível escolher uma música por dia"));
+                    });
 
-        return Mono.zip(user, existsSong, hasPostToday)
-                .flatMap(t -> repository.save(newPost))
-                .doOnNext(post -> {
-                    updateSongScore(post.getSongId()).subscribe();
-                });
+            return Mono.zip(user, existsSong, hasPostToday)
+                    .flatMap(t -> repository.save(newPost))
+                    .doOnNext(postSaved -> {
+                        updateSongScore(postSaved.getSongId()).subscribe();
+                    });
+        });
     }
 
-    public Flux<PostSearchDto> findAll(SearchPostsDto search) {
-        return repository.findPosts(search.getFollowees(), search.getOffset(), search.getLimit())
-                .switchIfEmpty(Mono.error(new NotFoundException("Nehuma publicação encontrada")));
+    public Flux<PostSearchDto> findAll(Mono<SearchPostsDto> search) {
+        return search.flatMapMany(s -> repository.findPosts(s.getFollowees(), s.getOffset(), s.getLimit())
+                .switchIfEmpty(Mono.error(new NotFoundException("Nenhuma publicação encontrada"))));
     }
 
     public Mono<Post> findById(String id) {
@@ -60,10 +62,10 @@ public class PostService {
                 .switchIfEmpty(Mono.error(new NotFoundException("Publicação não encontrada")));
     }
 
-    public Mono<Post> like(String idPost, String userId) {
+    public Mono<Post> like(String idPost, Mono<String> userId) {
         Mono<Post> post = findById(idPost);
-        Mono<User> user = userReadOnlyRepository.findById(userId)
-                .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
+        Mono<User> user = userId.flatMap(id -> userReadOnlyRepository.findById(id)
+                .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado"))));
 
         return post.zipWith(user).flatMap(t -> {
             Post postFound = t.getT1();
@@ -78,22 +80,25 @@ public class PostService {
         });
     }
 
-    public Mono<Post> unlike(String idPost, String userId) {
+    public Mono<Post> unlike(String idPost, Mono<String> userId) {
         Mono<Post> post = findById(idPost);
 
-        return post.flatMap(postFound -> {
-            boolean hasIdUser = postFound.getUserLikes().contains(userId);
+        return post.zipWith(userId).flatMap(t -> {
+            Post postFound = t.getT1();
+            String id = t.getT2();
+
+            boolean hasIdUser = postFound.getUserLikes().contains(id);
             if (!hasIdUser) {
                 return Mono.error(new ValidationException("Publicação não curtida"));
             }
 
-            postFound.getUserLikes().remove(userId);
+            postFound.getUserLikes().remove(id);
             return repository.save(postFound);
         });
     }
 
-    public Mono<Long> searchPostsCount(SearchPostsCountDto search) {
-        return repository.countByUserIdInAndCreatedAtBetween(search.getFollowees(), search.getStart(), search.getEnd());
+    public Mono<Long> searchPostsCount(Mono<SearchPostsCountDto> search) {
+        return search.flatMap(s -> repository.countByUserIdInAndCreatedAtBetween(s.getFollowees(), s.getStart(), s.getEnd()));
     }
 
     private Mono<Boolean> existsSongById(String songId) {

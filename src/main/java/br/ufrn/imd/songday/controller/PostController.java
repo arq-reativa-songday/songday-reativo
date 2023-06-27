@@ -30,30 +30,30 @@ public class PostController {
     private PostMapper mapper;
 
     @PostMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<ResponseEntity<Post>> save(@Valid @RequestBody PostInput postInput) {
-        Mono<Post> newPost = service.createPost(mapper.toPost(postInput));
+    public Mono<ResponseEntity<Post>> save(@Valid @RequestBody Mono<PostInput> postInput) {
+        Mono<Post> newPost = service.createPost(postInput.map(mapper::toPost));
         return newPost.map(ResponseEntity::ok);
     }
 
     @PostMapping(value = "/search", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<PostSearchDto> getAll(@Valid @RequestBody SearchPostsDto search) {
+    public Flux<PostSearchDto> getAll(@Valid @RequestBody Mono<SearchPostsDto> search) {
         return service.findAll(search);
     }
 
     @PostMapping(value = "/{id}/like", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<ResponseEntity<String>> follow(@PathVariable String id, @RequestBody String userId) {
+    public Mono<ResponseEntity<String>> like(@PathVariable String id, @RequestBody Mono<String> userId) {
         return service.like(id, userId)
                 .map(x -> ResponseEntity.ok("Publicação curtida com sucesso"));
     }
 
     @PostMapping(value = "/{id}/unlike", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<ResponseEntity<String>> unfollow(@PathVariable String id, @RequestBody String userId) {
+    public Mono<ResponseEntity<String>> unlike(@PathVariable String id, @RequestBody Mono<String> userId) {
         return service.unlike(id, userId)
                 .map(x -> ResponseEntity.ok("Deixou de curtir com sucesso"));
     }
 
     @PostMapping(value = "/search/count", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Mono<ResponseEntity<Long>> searchPostsCount(@Valid @RequestBody SearchPostsCountDto search) {
+    public Mono<ResponseEntity<Long>> searchPostsCount(@Valid @RequestBody Mono<SearchPostsCountDto> search) {
         return service.searchPostsCount(search)
                 .map(ResponseEntity::ok);
     }
