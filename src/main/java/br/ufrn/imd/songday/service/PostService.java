@@ -8,6 +8,7 @@ import br.ufrn.imd.songday.dto.post.PostSearchDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsCountDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsDto;
 import br.ufrn.imd.songday.exception.NotFoundException;
+import br.ufrn.imd.songday.exception.ServicesCommunicationException;
 import br.ufrn.imd.songday.exception.ValidationException;
 import br.ufrn.imd.songday.model.Post;
 import br.ufrn.imd.songday.model.User;
@@ -32,9 +33,7 @@ public class PostService {
         Mono<User> user = userReadOnlyRepository.findById(newPost.getUserId())
                 .switchIfEmpty(Mono.error(new NotFoundException("Usuário não encontrado")));
 
-        Mono<Boolean> existsSong = existsSongById(newPost.getSongId()).flatMap(result -> {
-            return result ? Mono.just(result) : Mono.error(new NotFoundException("Música não encontrada"));
-        });
+        Mono<Boolean> existsSong = existsSongById(newPost.getSongId());
 
         Mono<Boolean> hasPostToday = repository
                 .existsByUserIdAndCreatedAtBetween(newPost.getUserId(), DateUtil.getTodayStartDate(),
@@ -98,10 +97,24 @@ public class PostService {
     }
 
     private Mono<Boolean> existsSongById(String songId) {
-        return songsClient.findById(songId);
+        return songsClient.existsById(songId)
+                .doOnError(e -> {
+                    throw new ServicesCommunicationException(
+                            "Erro durante a comunicação com Songs para recuperar a música por id: "
+                                    + e.getLocalizedMessage());
+                })
+                .next()
+                .flatMap(result -> {
+                    return result ? Mono.just(result) : Mono.error(new NotFoundException("Música não encontrada"));
+                });
     }
 
     private Mono<Void> updateSongScore(String songId) {
-        return songsClient.updateScore(songId);
+        return songsClient.updateScore(songId)
+                .doOnError(e -> {
+                    throw new ServicesCommunicationException(
+                            "Erro durante a comunicação com Songs para atualizar o score da música: "
+                                    + e.getLocalizedMessage());
+                });
     }
 }
