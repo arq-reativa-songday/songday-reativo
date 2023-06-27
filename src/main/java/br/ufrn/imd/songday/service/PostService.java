@@ -97,16 +97,17 @@ public class PostService {
     }
 
     private Mono<Boolean> existsSongById(String songId) {
-        return songsClient.existsById(songId)
+        return songsClient.findById(songId)
                 .doOnError(e -> {
+                    if (e.getLocalizedMessage().contains("404 Not Found")) {
+                        throw new NotFoundException("Música não encontrada");
+                    }
                     throw new ServicesCommunicationException(
                             "Erro durante a comunicação com Songs para recuperar a música por id: "
                                     + e.getLocalizedMessage());
                 })
                 .next()
-                .flatMap(result -> {
-                    return result ? Mono.just(result) : Mono.error(new NotFoundException("Música não encontrada"));
-                });
+                .flatMap(result -> Mono.just(Boolean.TRUE));
     }
 
     private Mono<Void> updateSongScore(String songId) {

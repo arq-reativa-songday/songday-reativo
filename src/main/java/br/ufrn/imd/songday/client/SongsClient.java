@@ -9,8 +9,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface SongsClient {
-    @GetExchange("/songs/{id}/exists")
-    public Flux<Boolean> existsById(@PathVariable String id);
+    @GetExchange("/songs/{id}")
+    public Flux<Object> findById(@PathVariable String id);
 
     @PutExchange("/songpopularities/score")
     public Mono<Void> updateScore(@RequestParam(name = "songId") String songId);
