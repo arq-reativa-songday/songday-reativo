@@ -1,6 +1,7 @@
 package br.ufrn.imd.songday.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatusCode;
@@ -14,21 +15,25 @@ import reactor.core.publisher.Mono;
 
 @Configuration
 public class WebClientConfig {
-    @Value("${songs.api.address}")
+    @Value("${gateaway.api.address}")
     private String baseUrl;
 
+    @LoadBalanced
     @Bean
-    SongsClient songsClient() {
-        WebClient webClient = WebClient.builder()
+    WebClient webClient() {
+        return WebClient.builder()
                 .baseUrl(baseUrl)
                 .defaultStatusHandler(
                         HttpStatusCode::is5xxServerError,
                         response -> Mono.error(new ServicesCommunicationException(
                                 "Erro durante a comunicação com Songs: " + response.toString())))
                 .build();
+    }
 
+    @Bean
+    SongsClient songsClient() {
         return HttpServiceProxyFactory
-                .builder(WebClientAdapter.forClient(webClient))
+                .builder(WebClientAdapter.forClient(webClient()))
                 .build()
                 .createClient(SongsClient.class);
     }
