@@ -36,13 +36,14 @@ public class PostService {
 
             Mono<Boolean> existsSong = existsSongById(newPost.getSongId());
 
-            Mono<Boolean> hasPostToday = repository
-                    .existsByUserIdAndCreatedAtBetween(newPost.getUserId(), DateUtil.getTodayStartDate(),
-                            DateUtil.getTodayEndDate())
-                    .flatMap(hasPost -> {
-                        return !hasPost ? Mono.just(hasPost)
-                                : Mono.error(new ValidationException("Só é possível escolher uma música por dia"));
-                    });
+            Mono<Boolean> hasPostToday = Mono.just(false);
+//            Mono<Boolean> hasPostToday = repository
+//                    .existsByUserIdAndCreatedAtBetween(newPost.getUserId(), DateUtil.getTodayStartDate(),
+//                            DateUtil.getTodayEndDate())
+//                    .flatMap(hasPost -> {
+//                        return !hasPost ? Mono.just(hasPost)
+//                                : Mono.error(new ValidationException("Só é possível escolher uma música por dia"));
+//                    });
 
             return Mono.zip(user, existsSong, hasPostToday)
                     .flatMap(t -> repository.save(newPost))
