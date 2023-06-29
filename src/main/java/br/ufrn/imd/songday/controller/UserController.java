@@ -76,8 +76,7 @@ public class UserController {
 
     @GetMapping(value = "/username/{username}/followees", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Mono<ResponseEntity<Set<String>>> getFolloweesByUsername(@PathVariable String username) {
-        Mono<User> user = service.findByUsername(username);
-        return user.map(u -> u.getFollowees())
+        return service.findFolloweesByUsername(username)
                 .map(ResponseEntity::ok);
     }
 }
