@@ -1,0 +1,28 @@
+spring:
+  data:
+    mongodb:
+      database: songday
+      uri: mongodb://localhost:27017
+    redis:
+      url: redis://127.0.0.1:6379
+  main:
+    allow-bean-definition-overriding: 'true'
+    web-application-type: 'reactive'
+  cloud:
+    loadbalancer:
+      ribbon:
+        enabled: 'false'
+  application:
+    name: songday-reactive
+  profiles:
+    active: dev
+  config:
+    import: optional:configserver:http://localhost:8888
+
+server:
+  port: 8065
+
+api:
+  cached: 'false'
+  cache:
+    local: 'false'

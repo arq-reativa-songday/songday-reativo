@@ -1,5 +1,9 @@
 package br.ufrn.imd.songday.service;
 
+import org.redisson.api.RTopic;
+import org.redisson.api.RTopicReactive;
+import org.redisson.api.RedissonReactiveClient;
+import org.redisson.client.codec.StringCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +33,9 @@ public class PostService {
     @Autowired
     private UserReadOnlyRepository userReadOnlyRepository;
 
+    @Autowired
+    private RedissonReactiveClient redisClient;
+
     public Mono<Post> createPost(Mono<Post> post) {
         return post.flatMap(newPost -> {
             Mono<User> user = userReadOnlyRepository.findById(newPost.getUserId())
@@ -48,7 +55,7 @@ public class PostService {
             return Mono.zip(user, existsSong, hasPostToday)
                     .flatMap(t -> repository.save(newPost))
                     .doOnNext(postSaved -> {
-                        updateSongScore(postSaved.getSongId()).subscribe();
+                        updateSongScore(postSaved.getSongId());
                     });
         });
     }
@@ -116,12 +123,15 @@ public class PostService {
                 .flatMap(result -> Mono.just(Boolean.TRUE));
     }
 
-    private Mono<Void> updateSongScore(String songId) {
-        return songsClient.updateScore(songId)
-                .doOnError(e -> {
-                    throw new ServicesCommunicationException(
-                            "Erro durante a comunicação com Songs para atualizar o score da música: "
-                                    + e.getLocalizedMessage());
-                });
+    private void updateSongScore(String songId) {
+        RTopicReactive songPopularityTopic = redisClient.getTopic("songPopularityReactiveTopic", StringCodec.INSTANCE);
+        songPopularityTopic.publish(songId);
+
+//        return songsClient.updateScore(songId)
+//                .doOnError(e -> {
+//                    throw new ServicesCommunicationException(
+//                            "Erro durante a comunicação com Songs para atualizar o score da música: "
+//                                    + e.getLocalizedMessage());
+//                });
     }
 }
