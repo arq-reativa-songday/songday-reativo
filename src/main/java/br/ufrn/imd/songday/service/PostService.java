@@ -1,13 +1,7 @@
 package br.ufrn.imd.songday.service;
 
-import org.redisson.api.RTopic;
-import org.redisson.api.RTopicReactive;
-import org.redisson.api.RedissonReactiveClient;
-import org.redisson.client.codec.StringCodec;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import br.ufrn.imd.songday.client.SongsClient;
+import br.ufrn.imd.songday.client.SongsClientResilience;
 import br.ufrn.imd.songday.dto.post.PostSearchDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsCountDto;
 import br.ufrn.imd.songday.dto.post.SearchPostsDto;
@@ -18,7 +12,13 @@ import br.ufrn.imd.songday.model.Post;
 import br.ufrn.imd.songday.model.User;
 import br.ufrn.imd.songday.repository.PostRepository;
 import br.ufrn.imd.songday.repository.UserReadOnlyRepository;
-import br.ufrn.imd.songday.util.DateUtil;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import net.bytebuddy.implementation.bytecode.Throw;
+import org.redisson.api.RTopicReactive;
+import org.redisson.api.RedissonReactiveClient;
+import org.redisson.client.codec.StringCodec;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -29,6 +29,9 @@ public class PostService {
 
     @Autowired
     private SongsClient songsClient;
+
+    @Autowired
+    private SongsClientResilience songsClientResilience;
 
     @Autowired
     private UserReadOnlyRepository userReadOnlyRepository;
@@ -110,7 +113,7 @@ public class PostService {
     }
 
     private Mono<Boolean> existsSongById(String songId) {
-        return songsClient.findById(songId)
+        return songsClientResilience.findById(songId)
                 .doOnError(e -> {
                     if (e.getLocalizedMessage().contains("404 Not Found")) {
                         throw new NotFoundException("Música não encontrada");

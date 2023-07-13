@@ -27,7 +27,7 @@ public class WebClientConfig {
     @Bean
     WebClient webClient() {
         return WebClient.builder()
-                .baseUrl(env.getProperty("gateway.api.address"))
+                .baseUrl("http://localhost:8080")
                 .defaultStatusHandler(
                         HttpStatusCode::is5xxServerError,
                         response -> Mono.error(new ServicesCommunicationException(

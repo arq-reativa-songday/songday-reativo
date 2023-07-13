@@ -1,17 +1,10 @@
 spring:
   data:
-    mongodb:
-      database: songday
-      uri: mongodb://localhost:27017
     redis:
       url: redis://127.0.0.1:6379
   main:
     allow-bean-definition-overriding: 'true'
     web-application-type: 'reactive'
-  cloud:
-    loadbalancer:
-      ribbon:
-        enabled: 'false'
   application:
     name: songday-reactive
   profiles:
@@ -26,3 +19,69 @@ api:
   cached: 'false'
   cache:
     local: 'false'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: ALWAYS
+    circuitbreakers:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+
+resilience4j.circuitbreaker:
+  instances:
+    songs-find-by-id:
+      registerHealthIndicator: true
+      failureRateThreshold: 50
+      minimumNumberOfCalls: 5
+      automaticTransitionFromOpenToHalfOpenEnabled: true
+      waitDurationInOpenState: 7s
+      permittedNumberOfCallsInHalfOpenState: 3
+      slidingWindowSize: 10
+      slidingWindowType: COUNT_BASED
+      recordExceptions:
+        - org.springframework.web.client.HttpServerErrorException
+        - java.io.IOException
+        - java.lang.IllegalStateException
+        - java.util.concurrent.TimeoutException
+        - org.springframework.web.client.ResourceAccessException
+        - java.lang.RuntimeException
+        - java.lang.Throwable
+
+resilience4j.bulkhead:
+  instances:
+    songs-find-by-id-bulkhead:
+      maxWaitDuration: 2ms
+      maxConcurrentCalls: 10
+
+
+resilience4j.retry:
+  instances:
+    songs-find-by-id-retry:
+      registerHealthIndicator: true
+      maxRetryAttempts: 5
+      waitDuration: 10000
+      retry-exceptions:
+        - java.util.concurrent.TimeoutException
+        - java.net.ConnectException
+        - java.lang.Throwable
+        - org.springframework.web.client.HttpServerErrorException
+        - java.io.IOException
+
+resilience4j.ratelimiter:
+  instances:
+    songs-find-by-id-rate-limiter:
+      registerHealthIndicator: true
+      timeoutDuration: 1000ms
+      limitRefreshPeriod: 5000
+      limitForPeriod: 5
+
+
