@@ -13,13 +13,25 @@ spring:
       ribbon:
         enabled: 'false'
     function:
-      definition: retrievePosts
+      definition: retrievePosts;printErrorsSongDay;createPost;postsSongExists;printCreatedPost
     stream:
       bindings:
         retrievePosts-in-0:
           destination: getposts
         retrievePosts-out-0:
           destination: posts
+        printErrorsSongDay-in-0:
+          destination: errorssongday
+        createPost-in-0:
+          destination: createpost
+        createPost-out-0:
+          destination: verifypostssong
+        postsSongExists-in-0:
+          destination: postssongexists
+        postsSongExists-out-0:
+          destination: postcreated
+        printCreatedPost-in-0:
+          destination: postcreated
   rabbitmq:
     host: localhost
     port: 5672
