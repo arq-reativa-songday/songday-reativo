@@ -12,8 +12,22 @@ spring:
     loadbalancer:
       ribbon:
         enabled: 'false'
+    function:
+      definition: retrievePosts
+    stream:
+      bindings:
+        retrievePosts-in-0:
+          destination: getposts
+        retrievePosts-out-0:
+          destination: posts
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 5s
   application:
-    name: songday-reactive
+    name: event-driven-songday
   profiles:
     active: dev
   config:

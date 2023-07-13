@@ -98,9 +98,9 @@ public class UserService {
     }
 
     public Mono<Set<String>> findFolloweesByUsername(String username) {
-        if (cacheActive) {
-            return followeesCache.get(username);
-        }
+        // if (cacheActive) {
+        //     return followeesCache.get(username);
+        // }
 
         return findByUsername(username).map(u -> u.getFollowees());
     }
