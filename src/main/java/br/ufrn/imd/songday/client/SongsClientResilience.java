@@ -16,7 +16,7 @@ public class SongsClientResilience {
 
     @CircuitBreaker(name = "songs-find-by-id")
     @Bulkhead(name = "songs-find-by-id-bulkhead")
-    @RateLimiter(name = "songs-find-by-id-rate-limiter")
+//    @RateLimiter(name = "songs-find-by-id-rate-limiter")
     @Retry(name = "songs-find-by-id-retry")
 
     public Flux<Object> findById(String songId) {

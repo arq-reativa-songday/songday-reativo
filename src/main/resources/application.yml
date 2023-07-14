@@ -67,8 +67,8 @@ resilience4j.retry:
   instances:
     songs-find-by-id-retry:
       registerHealthIndicator: true
-      maxRetryAttempts: 5
-      waitDuration: 10000
+      maxRetryAttempts: 1
+      waitDuration: 10
       retry-exceptions:
         - java.util.concurrent.TimeoutException
         - java.net.ConnectException
@@ -76,12 +76,12 @@ resilience4j.retry:
         - org.springframework.web.client.HttpServerErrorException
         - java.io.IOException
 
-resilience4j.ratelimiter:
-  instances:
-    songs-find-by-id-rate-limiter:
-      registerHealthIndicator: true
-      timeoutDuration: 1000ms
-      limitRefreshPeriod: 5000
-      limitForPeriod: 5
+#resilience4j.ratelimiter:
+#  instances:
+#    songs-find-by-id-rate-limiter:
+#      registerHealthIndicator: true
+#      timeoutDuration: 10ms
+#      limitRefreshPeriod: 5000
+#      limitForPeriod: 5
 
 
