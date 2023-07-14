@@ -13,7 +13,7 @@ spring:
       ribbon:
         enabled: 'false'
     function:
-      definition: retrievePosts;printErrorsSongDay;createPost;postsSongExists;printCreatedPost
+      definition: retrievePosts;printErrorsSongDay;createPost;postsSongExists;printCreatedPost;likePost;unlikePost
     stream:
       bindings:
         retrievePosts-in-0:
@@ -32,6 +32,10 @@ spring:
           destination: postcreated
         printCreatedPost-in-0:
           destination: postcreated
+        likePost-in-0:
+          destination: likepost
+        unlikePost-in-0:
+          destination: unlikepost
   rabbitmq:
     host: localhost
     port: 5672

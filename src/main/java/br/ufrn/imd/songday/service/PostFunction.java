@@ -13,6 +13,7 @@ import org.springframework.messaging.support.MessageBuilder;
 
 import br.ufrn.imd.songday.dto.post.GenerateFeedDto;
 import br.ufrn.imd.songday.dto.post.PostInput;
+import br.ufrn.imd.songday.dto.post.PostLikeDto;
 import br.ufrn.imd.songday.dto.post.PostMapper;
 import br.ufrn.imd.songday.dto.post.PostSearchDto;
 import br.ufrn.imd.songday.exception.NotFoundException;
@@ -140,6 +141,69 @@ public class PostFunction {
         return errors -> {
             errors.doOnNext(error -> {
                 System.out.println("[ERRORS] " + error);
+            }).subscribe();
+        };
+    }
+
+    private Mono<Post> findById(String id) {
+        return repository.findById(id)
+                .switchIfEmpty(Mono.error(new NotFoundException("Publicação com id " + id + " não encontrada")));
+    }
+
+    @Bean
+    public Consumer<Flux<PostLikeDto>> likePost() {
+        return input -> {
+            input.flatMap(dto -> {
+                Mono<Post> post = findById(dto.getId());
+                Mono<User> user = userReadOnlyRepository.findById(dto.getUserId())
+                        .switchIfEmpty(Mono
+                                .error(new NotFoundException("Usuário com id " + dto.getUserId() + " não encontrado")));
+
+                return post.zipWith(user).flatMap(t -> {
+                    Post postFound = t.getT1();
+                    User userFound = t.getT2();
+                    boolean hasIdUser = postFound.getUserLikes().contains(userFound.getId());
+                    if (hasIdUser) {
+                        return Mono
+                                .error(new ValidationException("Não é possível curtir uma publicação mais de uma vez"));
+                    }
+
+                    postFound.getUserLikes().add(userFound.getId());
+                    return repository.save(postFound).doOnSuccess(postSaved -> {
+                        System.out.println("[POSTS] Post com id " + postSaved.getId() + " curtido com sucesso. likes="
+                                + postSaved.getUserLikes().size());
+                    });
+                }).onErrorResume(error -> {
+                    Message<String> event = MessageBuilder.withPayload(error.getMessage()).build();
+                    streamBridge.send("errorssongday", event);
+                    return Mono.empty();
+                });
+            }).subscribe();
+        };
+    }
+
+    @Bean
+    public Consumer<Flux<PostLikeDto>> unlikePost() {
+        return input -> {
+            input.flatMap(dto -> {
+                Mono<Post> post = findById(dto.getId());
+
+                return post.flatMap(postFound -> {
+                    boolean hasIdUser = postFound.getUserLikes().contains(dto.getUserId());
+                    if (!hasIdUser) {
+                        return Mono.error(new ValidationException("Publicação " + dto.getId() + " não curtida"));
+                    }
+
+                    postFound.getUserLikes().remove(dto.getUserId());
+                    return repository.save(postFound).doOnSuccess(postSaved -> {
+                        System.out.println("[POSTS] Deixou de curtir com sucesso o post com id " + postSaved.getId()
+                                + ". likes=" + postSaved.getUserLikes().size());
+                    });
+                }).onErrorResume(error -> {
+                    Message<String> event = MessageBuilder.withPayload(error.getMessage()).build();
+                    streamBridge.send("errorssongday", event);
+                    return Mono.empty();
+                });
             }).subscribe();
         };
     }
