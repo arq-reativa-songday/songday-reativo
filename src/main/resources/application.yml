@@ -15,6 +15,9 @@ spring:
     function:
       definition: retrievePosts;printErrorsSongDay;createPost;postsSongExists;printCreatedPost;likePost;unlikePost
     stream:
+      # kafka:
+      #   binder:
+      #     brokers: localhost:9092
       bindings:
         retrievePosts-in-0:
           destination: getposts
